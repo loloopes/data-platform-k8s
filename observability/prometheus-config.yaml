@@ -158,11 +158,11 @@ data:
             expr: |
               (
                 sum by (namespace, pod, container) (
-                  rate(container_cpu_usage_seconds_total{namespace="data-platform", container!=""}[5m])
+                  rate(container_cpu_usage_seconds_total{namespace="data-platform", container!="", image!=""}[5m])
                 )
                 /
                 sum by (namespace, pod, container) (
-                  kube_pod_container_resource_limits{namespace="data-platform", resource="cpu", container!=""}
+                  kube_pod_container_resource_requests{namespace="data-platform", resource="cpu", container!=""}
                 )
               ) > 0.9
             for: 10m
@@ -170,17 +170,17 @@ data:
               severity: warning
             annotations:
               summary: "High CPU on {{ $labels.pod }}/{{ $labels.container }}"
-              description: "Container is above 90% of its CPU limit for 10 minutes."
+              description: "Container is above 90% of its CPU request for 10 minutes."
 
           - alert: PodHighMemory
             expr: |
               (
                 sum by (namespace, pod, container) (
-                  container_memory_working_set_bytes{namespace="data-platform", container!=""}
+                  container_memory_working_set_bytes{namespace="data-platform", container!="", image!=""}
                 )
                 /
                 sum by (namespace, pod, container) (
-                  kube_pod_container_resource_limits{namespace="data-platform", resource="memory", container!=""}
+                  kube_pod_container_resource_requests{namespace="data-platform", resource="memory", container!=""}
                 )
               ) > 0.9
             for: 10m
@@ -188,7 +188,7 @@ data:
               severity: warning
             annotations:
               summary: "High memory on {{ $labels.pod }}/{{ $labels.container }}"
-              description: "Container is above 90% of its memory limit for 10 minutes."
+              description: "Container is above 90% of its memory request for 10 minutes."
 
       - name: monitoring-stack
         rules:

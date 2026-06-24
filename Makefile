@@ -41,7 +41,7 @@ status:
 	kubectl -n monitoring get pods,svc 2>/dev/null || true
 
 restart:
-	kubectl -n data-platform rollout restart deployment --all
+	kubectl -n data-platform get deployments -o name | xargs -r -n 1 kubectl -n data-platform rollout restart
 
 port-forward:
 	bash scripts/port-forward-all.sh
