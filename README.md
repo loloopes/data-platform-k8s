@@ -4,7 +4,7 @@ Deploys the full stack from this monorepo into a single namespace **`data-platfo
 
 | Component | Source repo | K8s services |
 |-----------|-------------|--------------|
-| Credit / MLflow / Kafka | `credit_risk_forecast/` | `postgres`, `minio`, `mlflow`, `credit-api`, `kafka` |
+| Credit / MLflow / Kafka | `credit_risk_forecast/` | `mlflow-postgres`, `minio`, `mlflow`, `credit-api`, `kafka` |
 | Trino lakehouse | `trino/` | `mysql`, `hive-metastore`, `trino`, `pgvector` |
 | Spark | `spark-cluster/` | `spark-master`, `spark-worker` |
 | LLM APIs | `llm/` | `llm-api`, `llm-langgraph-api` |
@@ -179,13 +179,11 @@ Add to `/etc/hosts` (WSL: `/etc/hosts`, Windows: `C:\Windows\System32\drivers\et
 | Deployment | Min | Max | Trigger |
 |------------|-----|-----|---------|
 | `credit-api` | 1 | 5 | CPU 70% |
-| `mlflow` | 1 | 3 | CPU 70% |
 | `llm-api` | 1 | 3 | CPU 75% |
 | `llm-langgraph-api` | 1 | 3 | CPU 75% |
 | `llm-trino-mcp` | 1 | 3 | CPU 70% |
 | `spark-worker` | 1 | 4 | CPU 70% |
 | `airflow-worker` | 1 | 5 | CPU 70% |
-| `airflow-apiserver` | 1 | 3 | CPU 70% |
 
 Check scaling status:
 
@@ -196,8 +194,8 @@ make hpa-status
 
 **Does not scale horizontally** (single-replica by design on kind):
 
-- Databases and brokers: `postgres`, `mysql`, `minio`, `kafka`, `pgvector`, `airflow-postgres`, `airflow-redis`
-- Coordinators / singletons: `trino`, `hive-metastore`, `spark-master`, `airflow-scheduler`, `airflow-dag-processor`, `airflow-triggerer`
+- Databases and brokers: `mlflow-postgres`, `mysql`, `minio`, `kafka`, `pgvector`, `airflow-postgres`, `airflow-redis`
+- Coordinators / singletons: `mlflow`, `airflow-apiserver`, `trino`, `hive-metastore`, `spark-master`, `airflow-scheduler`, `airflow-dag-processor`, `airflow-triggerer`
 
 **Multi-replica notes:**
 
@@ -265,7 +263,8 @@ Most services do not expose Prometheus metrics yet; workload dashboards use cAdv
 
 CeleryExecutor stack matching `credit_risk_forecast/docker-compose.airflow.yml`:
 
-- **airflow-postgres** / **airflow-redis** — metadata DB and Celery broker (separate from MLflow Postgres)
+- **mlflow-postgres** — dedicated Postgres for MLflow tracking (`mlflow` DB) and auth (`mlflow_auth` DB). Databases are created once on first PVC init (`docker-entrypoint-initdb.d`); data persists across MLflow pod restarts.
+- **airflow-postgres** / **airflow-redis** — metadata DB and Celery broker (separate from MLflow)
 - **airflow-init** Job — DB migrate + admin user
 - **airflow-apiserver** — UI and API (port 8080)
 - **airflow-scheduler**, **airflow-dag-processor**, **airflow-worker**, **airflow-triggerer**

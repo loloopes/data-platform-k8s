@@ -14,7 +14,8 @@ secretGenerator:
 configMapGenerator:
   - name: platform-config
     literals:
-      - POSTGRES_HOST=postgres
+      - POSTGRES_HOST=mlflow-postgres
+      - MLFLOW_AUTH_DB=mlflow_auth
       - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
       - MLFLOW_S3_IGNORE_TLS=true
       - MLFLOW_TRACKING_URI=http://mlflow:5000

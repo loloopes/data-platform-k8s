@@ -24,27 +24,6 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: mlflow
-  labels:
-    app.kubernetes.io/component: autoscaling
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: mlflow
-  minReplicas: 1
-  maxReplicas: 3
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 70
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
   name: llm-api
   labels:
     app.kubernetes.io/component: autoscaling
@@ -139,27 +118,6 @@ spec:
     name: airflow-worker
   minReplicas: 1
   maxReplicas: 5
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 70
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: airflow-apiserver
-  labels:
-    app.kubernetes.io/component: autoscaling
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: airflow-apiserver
-  minReplicas: 1
-  maxReplicas: 3
   metrics:
     - type: Resource
       resource:
