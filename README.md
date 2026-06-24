@@ -8,6 +8,7 @@ Deploys the full stack from this monorepo into a single namespace **`data-platfo
 | Trino lakehouse | `trino/` | `mysql`, `hive-metastore`, `trino`, `pgvector` |
 | Spark | `spark-cluster/` | `spark-master`, `spark-worker` |
 | LLM APIs | `llm/` | `llm-api`, `llm-langgraph-api` |
+| Airflow | `credit_risk_forecast/` | `airflow-postgres`, `airflow-redis`, `airflow-apiserver`, scheduler, worker, … |
 | Trino MCP | `mcp/` | `llm-trino-mcp` |
 
 Service DNS names match Docker Compose (`minio`, `trino`, `kafka`, …) so existing app config works unchanged.
@@ -75,6 +76,7 @@ k8s/
 ├── spark/
 ├── mcp/
 ├── llm/
+├── airflow/
 ├── ingress/
 └── scripts/
     ├── create-kind-cluster.sh
@@ -84,7 +86,45 @@ k8s/
     └── deploy.sh
 ```
 
-## Port-forward (local access)
+## Localhost ports
+
+Two ways to reach services from your machine:
+
+### A) NodePort (persistent — requires cluster created with current `kind-config.yaml`)
+
+| Service | localhost | Notes |
+|---------|-----------|--------|
+| Credit API | http://localhost:8000 | |
+| MLflow | http://localhost:5000 | |
+| LLM API | http://localhost:8001 | |
+| LangGraph API | http://localhost:8002 | |
+| **Trino** | **jdbc:trino://localhost:8086** | JDBC / SQL clients |
+| MinIO S3 API | http://localhost:9000 | |
+| MinIO console | http://localhost:9001 | |
+| Airflow | http://localhost:8085 | user `airflow` / `airflow` |
+| Spark UI | http://localhost:8083 | |
+
+After `make deploy`, ports work immediately if the kind cluster was created with the port mappings above.  
+**Existing cluster?** Recreate: `make cluster-down && make cluster-up && make deploy`
+
+### B) Port-forward (works on any running cluster)
+
+```bash
+make port-forward        # start all forwards in background
+make port-forward-stop   # stop them
+```
+
+### C) Ingress on port 80 (hostnames)
+
+Add to `/etc/hosts`:
+
+```
+127.0.0.1 credit.local mlflow.local llm.local langgraph.local trino.local minio.local airflow.local
+```
+
+Then use e.g. http://trino.local (port 80, not 8086).
+
+## Port-forward (manual)
 
 | Service | Command | URL |
 |---------|---------|-----|
@@ -93,6 +133,7 @@ k8s/
 | LLM API | `kubectl -n data-platform port-forward svc/llm-api 8001:8000` | http://localhost:8001/docs |
 | LangGraph | `kubectl -n data-platform port-forward svc/llm-langgraph-api 8002:8000` | http://localhost:8002/docs |
 | Trino | `kubectl -n data-platform port-forward svc/trino 8086:8080` | http://localhost:8086 |
+| Airflow | `kubectl -n data-platform port-forward svc/airflow-apiserver 8085:8080` | http://localhost:8085 (airflow/airflow) |
 | MinIO console | `kubectl -n data-platform port-forward svc/minio 9001:9001` | http://localhost:9001 |
 
 ## Ingress (optional)
@@ -102,7 +143,7 @@ k8s/
 Add to `/etc/hosts` (WSL: `/etc/hosts`, Windows: `C:\Windows\System32\drivers\etc\hosts`):
 
 ```
-127.0.0.1 credit.local mlflow.local llm.local langgraph.local trino.local minio.local
+127.0.0.1 credit.local mlflow.local llm.local langgraph.local trino.local minio.local airflow.local
 ```
 
 ## Makefile targets
@@ -131,8 +172,27 @@ Add to `/etc/hosts` (WSL: `/etc/hosts`, Windows: `C:\Windows\System32\drivers\et
 | `local/llm-api:latest` | `llm/api` |
 | `local/llm-langgraph-api:latest` | same as llm-api |
 | `local/llm-trino-mcp:latest` | `mcp` |
+| `local/airflow:3.1.0-libgomp` | `credit_risk_forecast/` (DAGs + config baked in) |
 | `gruponddados/trino:469` | pulled by kind node |
 | `pgvector/pgvector:pg16` | pulled by kind node |
+
+## Airflow
+
+CeleryExecutor stack matching `credit_risk_forecast/docker-compose.airflow.yml`:
+
+- **airflow-postgres** / **airflow-redis** — metadata DB and Celery broker (separate from MLflow Postgres)
+- **airflow-init** Job — DB migrate + admin user
+- **airflow-apiserver** — UI and API (port 8080)
+- **airflow-scheduler**, **airflow-dag-processor**, **airflow-worker**, **airflow-triggerer**
+
+DAGs and `airflow.cfg` are baked into `local/airflow:3.1.0-libgomp` at build time. Rebuild after DAG changes:
+
+```bash
+make build && make load-kind
+kubectl -n data-platform rollout restart deployment -l 'app in (airflow-apiserver,airflow-scheduler,airflow-dag-processor,airflow-worker,airflow-triggerer)'
+```
+
+**Note:** DockerOperator / NannyML docker-in-docker from compose is not mounted in k8s. Training and MLflow DAGs work against in-cluster MinIO/MLflow/credit-api.
 
 ## Trino catalogs
 
@@ -144,5 +204,4 @@ Query pgvector from Trino: `SELECT * FROM pgvector.public.<table>` (after creati
 
 ## Not included (yet)
 
-- **Airflow** — separate overlay
 - Production HA, TLS, external S3/Postgres, GPU nodes for LLM

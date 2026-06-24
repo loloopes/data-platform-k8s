@@ -68,3 +68,13 @@ spec:
                 name: minio
                 port:
                   number: 9001
+    - host: airflow.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: airflow-apiserver
+                port:
+                  number: 8080

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-master
+spec:
+  type: NodePort
+  ports:
+    - name: rpc
+      port: 7077
+      targetPort: 7077
+      nodePort: 30707
+    - name: ui
+      port: 8080
+      targetPort: 8080
+      nodePort: 30803

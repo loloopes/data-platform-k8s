@@ -10,4 +10,40 @@ resources:
   - ../spark
   - ../mcp
   - ../llm
+  - ../airflow
   - ../ingress
+
+# NodePort patches for localhost access via kind extraPortMappings (see kind-config.yaml)
+patches:
+  - path: ../expose/patches/credit-api.yaml
+    target:
+      kind: Service
+      name: credit-api
+  - path: ../expose/patches/mlflow.yaml
+    target:
+      kind: Service
+      name: mlflow
+  - path: ../expose/patches/llm-api.yaml
+    target:
+      kind: Service
+      name: llm-api
+  - path: ../expose/patches/llm-langgraph-api.yaml
+    target:
+      kind: Service
+      name: llm-langgraph-api
+  - path: ../expose/patches/trino.yaml
+    target:
+      kind: Service
+      name: trino
+  - path: ../expose/patches/minio.yaml
+    target:
+      kind: Service
+      name: minio
+  - path: ../expose/patches/airflow-apiserver.yaml
+    target:
+      kind: Service
+      name: airflow-apiserver
+  - path: ../expose/patches/spark-master.yaml
+    target:
+      kind: Service
+      name: spark-master

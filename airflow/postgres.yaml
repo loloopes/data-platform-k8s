@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: airflow-postgres
+  labels:
+    app: airflow-postgres
+spec:
+  ports:
+    - port: 5432
+      name: postgres
+  selector:
+    app: airflow-postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: airflow-postgres
+  labels:
+    app: airflow-postgres
+spec:
+  serviceName: airflow-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: airflow-postgres
+  template:
+    metadata:
+      labels:
+        app: airflow-postgres
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: postgres
+          image: postgres:13
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: platform-secrets
+                  key: AIRFLOW_DB_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: platform-secrets
+                  key: AIRFLOW_DB_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: platform-secrets
+                  key: AIRFLOW_DB_NAME
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 5
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi

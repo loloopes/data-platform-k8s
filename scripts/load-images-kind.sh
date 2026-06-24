@@ -24,6 +24,7 @@ IMAGES=(
   "local/llm-trino-mcp:${TAG}"
   "local/llm-api:${TAG}"
   "local/llm-langgraph-api:${TAG}"
+  "local/airflow:3.1.0-libgomp"
 )
 
 echo "Loading images into kind cluster '${CLUSTER_NAME}'..."

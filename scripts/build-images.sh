@@ -41,4 +41,7 @@ docker build -t "local/llm-api:${TAG}" \
 echo "==> llm-langgraph-api"
 docker tag "local/llm-api:${TAG}" "local/llm-langgraph-api:${TAG}"
 
+echo "==> airflow"
+docker build -t "local/airflow:3.1.0-libgomp" -f "${K8S_DIR}/airflow/Dockerfile" "${ROOT}/credit_risk_forecast"
+
 echo "Done. Images tagged with :${TAG}"

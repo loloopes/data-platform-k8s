@@ -40,4 +40,5 @@ echo "  kubectl -n data-platform port-forward svc/credit-api 8000:8000"
 echo "  kubectl -n data-platform port-forward svc/llm-api 8001:8000"
 echo "  kubectl -n data-platform port-forward svc/llm-langgraph-api 8002:8000"
 echo "  kubectl -n data-platform port-forward svc/trino 8086:8080"
-echo "  kubectl -n data-platform port-forward svc/mlflow 5000:5000"
+echo "  kubectl -n data-platform port-forward svc/mlflow 5000:5000
+  kubectl -n data-platform port-forward svc/airflow-apiserver 8085:8080"

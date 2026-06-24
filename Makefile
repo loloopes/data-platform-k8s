@@ -1,4 +1,4 @@
-.PHONY: env cluster-up cluster-down build load-kind deploy up dry-run delete status restart
+.PHONY: env cluster-up cluster-down build load-kind deploy up dry-run delete status restart port-forward port-forward-stop
 
 KIND_CLUSTER_NAME ?= data-platform
 export KIND_CLUSTER_NAME
@@ -39,3 +39,9 @@ status:
 
 restart:
 	kubectl -n data-platform rollout restart deployment --all
+
+port-forward:
+	bash scripts/port-forward-all.sh
+
+port-forward-stop:
+	bash scripts/port-forward-all.sh stop

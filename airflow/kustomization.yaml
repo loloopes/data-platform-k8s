@@ -1,0 +1,49 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - postgres.yaml
+  - redis.yaml
+  - init-job.yaml
+  - components.yaml
+
+configMapGenerator:
+  - name: airflow-config
+    literals:
+      - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
+      - AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
+      - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
+      - AIRFLOW__CELERY__BROKER_URL=redis://airflow-redis:6379/0
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__CORE__EXECUTION_API_SERVER_URL=http://airflow-apiserver:8080/execution/
+      - AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK=true
+      - AIRFLOW_CONFIG=/opt/airflow/config/airflow.cfg
+      - AWS_DEFAULT_REGION=us-east-1
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_EXPERIMENT_NAME=credit_risk_training
+      - MLFLOW_REGISTERED_MODEL_NAME=credit_model_pipeline_v2
+      - RAW_SUBMISSAO_PATH=s3://mlflow/data/base_submissao.parquet
+      - RAW_CADASTRAL_PATH=s3://mlflow/data/base_cadastral.parquet
+      - RAW_EMPRESTIMOS_PATH=s3://mlflow/data/historico_emprestimos.parquet
+      - RAW_PARCELAS_PATH=s3://mlflow/data/historico_parcelas.parquet
+      - REFERENCE_DATA_PATH=s3://mlflow/data
+      - ANALYSIS_DATA_PATH=s3://mlflow/actuals
+      - REFERENCE_SUFFIX=.parquet
+      - ANALYSIS_SUFFIX=_new.parquet
+      - MONITOR_JOIN_ID_CLIENTE=id_cliente
+      - MONITOR_JOIN_ID_CONTRATO=id_contrato
+      - MONITOR_OUTPUT_PATH=s3://mlflow/artifacts/nannyml_drift_report.csv
+      - DRIFT_ALERT_THRESHOLD=0.7
+      - MONITOR_TIMESTAMP_COLUMN=data_decisao
+      - MONITOR_TARGET_COLUMN=target
+      - MONITOR_PREDICTION_COLUMN=prediction_proba
+      - MODEL_DECAY_MIN_AUC_DROP=0.03
+      - PREDICTION_API_URL=http://credit-api:8000/predict
+      - REQUEST_TIMEOUT_SECONDS=15
+      - MONITOR_MAX_ROWS=0
+      - LAKEHOUSE_NEGADO_MIN_RATE=0.90
+    options:
+      disableNameSuffixHash: true

@@ -1,5 +1,7 @@
 # kind cluster for the data-platform stack (local dev).
 # https://kind.sigs.k8s.io/docs/user/configuration/
+#
+# extraPortMappings expose NodePort services on localhost (see k8s/expose/nodeports.yaml).
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: data-platform
@@ -12,10 +14,38 @@ nodes:
           kubeletExtraArgs:
             node-labels: "ingress-ready=true"
     extraPortMappings:
-      # nginx ingress (optional): map host 80/443 to the node
+      # nginx ingress (optional hostnames: *.local on port 80)
       - containerPort: 80
         hostPort: 80
         protocol: TCP
       - containerPort: 443
         hostPort: 443
+        protocol: TCP
+      # App services (containerPort = Kubernetes nodePort)
+      - containerPort: 30080
+        hostPort: 8000
+        protocol: TCP
+      - containerPort: 30500
+        hostPort: 5000
+        protocol: TCP
+      - containerPort: 30801
+        hostPort: 8001
+        protocol: TCP
+      - containerPort: 30802
+        hostPort: 8002
+        protocol: TCP
+      - containerPort: 30886
+        hostPort: 8086
+        protocol: TCP
+      - containerPort: 30900
+        hostPort: 9000
+        protocol: TCP
+      - containerPort: 30901
+        hostPort: 9001
+        protocol: TCP
+      - containerPort: 30885
+        hostPort: 8085
+        protocol: TCP
+      - containerPort: 30803
+        hostPort: 8083
         protocol: TCP
