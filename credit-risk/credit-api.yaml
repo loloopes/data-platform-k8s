@@ -27,7 +27,6 @@ spec:
       labels:
         app: credit-api
     spec:
-      hostname: credit-scoring-api
       initContainers:
         - name: wait-mlflow
           image: busybox:1.36

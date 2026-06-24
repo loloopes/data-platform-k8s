@@ -11,6 +11,7 @@ resources:
   - ../mcp
   - ../llm
   - ../airflow
+  - ../autoscaling
   - ../ingress
 
 # NodePort patches for localhost access via kind extraPortMappings (see kind-config.yaml)

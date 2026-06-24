@@ -34,5 +34,9 @@ kubectl --context "${KIND_CONTEXT}" rollout status deployment/ingress-nginx-cont
   -n ingress-nginx --timeout=300s
 
 echo ""
+echo "Installing metrics-server (required for HPA autoscaling)..."
+bash "${K8S_DIR}/scripts/install-metrics-server.sh"
+
+echo ""
 echo "Cluster ready. Context: ${KIND_CONTEXT}"
 echo "Next: make build && make load-kind && make deploy"

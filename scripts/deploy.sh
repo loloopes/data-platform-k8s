@@ -24,6 +24,7 @@ fi
 
 echo "==> kubectl apply (context: $(kubectl config current-context 2>/dev/null || echo unknown))"
 kubectl kustomize --load-restrictor LoadRestrictionsNone platform/ | kubectl apply -f -
+kubectl kustomize --load-restrictor LoadRestrictionsNone observability/ | kubectl apply -f -
 
 if command -v kind >/dev/null 2>&1; then
   echo ""
@@ -42,3 +43,8 @@ echo "  kubectl -n data-platform port-forward svc/llm-langgraph-api 8002:8000"
 echo "  kubectl -n data-platform port-forward svc/trino 8086:8080"
 echo "  kubectl -n data-platform port-forward svc/mlflow 5000:5000
   kubectl -n data-platform port-forward svc/airflow-apiserver 8085:8080"
+echo ""
+echo "Observability (Grafana admin/admin):"
+echo "  http://localhost:3000   Grafana"
+echo "  http://localhost:9090   Prometheus"
+echo "  http://localhost:9093   Alertmanager"

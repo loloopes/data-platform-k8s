@@ -24,11 +24,11 @@ stop_forwards
 : > "$PID_FILE"
 
 forward() {
-  local svc=$1 local_port=$2 remote_port=${3:-$2}
-  kubectl -n "$NS" port-forward "svc/${svc}" "${local_port}:${remote_port}" \
+  local svc=$1 local_port=$2 remote_port=${3:-$2} ns="${4:-$NS}"
+  kubectl -n "$ns" port-forward "svc/${svc}" "${local_port}:${remote_port}" \
     >/dev/null 2>&1 &
   echo $! >> "$PID_FILE"
-  echo "  localhost:${local_port} -> ${svc}:${remote_port}"
+  echo "  localhost:${local_port} -> ${ns}/${svc}:${remote_port}"
 }
 
 echo "Starting port-forwards (namespace: ${NS})..."
@@ -41,6 +41,9 @@ forward minio 9000 9000
 forward minio 9001 9001
 forward airflow-apiserver 8085 8080
 forward spark-master 8083 8080
+forward grafana 3000 3000 monitoring
+forward prometheus 9090 9090 monitoring
+forward alertmanager 9093 9093 monitoring
 
 echo ""
 echo "PIDs saved to ${PID_FILE}"

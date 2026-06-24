@@ -1,17 +1,4 @@
 apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: hf-cache
-  labels:
-    app: llm
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 20Gi
----
-apiVersion: v1
 kind: Service
 metadata:
   name: llm-api
@@ -76,8 +63,8 @@ spec:
             failureThreshold: 20
       volumes:
         - name: hf-cache
-          persistentVolumeClaim:
-            claimName: hf-cache
+          emptyDir:
+            sizeLimit: 20Gi
 ---
 apiVersion: v1
 kind: Service
@@ -152,5 +139,5 @@ spec:
             failureThreshold: 20
       volumes:
         - name: hf-cache
-          persistentVolumeClaim:
-            claimName: hf-cache
+          emptyDir:
+            sizeLimit: 20Gi

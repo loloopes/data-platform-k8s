@@ -77,9 +77,12 @@ k8s/
 ├── mcp/
 ├── llm/
 ├── airflow/
+├── autoscaling/                  # HPAs + CPU/memory requests for stateless workloads
+├── observability/                # Prometheus, Grafana, Alertmanager, kube-state-metrics
 ├── ingress/
 └── scripts/
     ├── create-kind-cluster.sh
+    ├── install-metrics-server.sh
     ├── load-images-kind.sh
     ├── delete-kind-cluster.sh
     ├── build-images.sh
@@ -103,6 +106,9 @@ Two ways to reach services from your machine:
 | MinIO console | http://localhost:9001 | |
 | Airflow | http://localhost:8085 | user `airflow` / `airflow` |
 | Spark UI | http://localhost:8083 | |
+| **Grafana** | **http://localhost:3000** | user `admin` / `admin` |
+| Prometheus | http://localhost:9090 | metrics + alert rules |
+| Alertmanager | http://localhost:9093 | firing alerts |
 
 After `make deploy`, ports work immediately if the kind cluster was created with the port mappings above.  
 **Existing cluster?** Recreate: `make cluster-down && make cluster-up && make deploy`
@@ -135,6 +141,9 @@ Then use e.g. http://trino.local (port 80, not 8086).
 | Trino | `kubectl -n data-platform port-forward svc/trino 8086:8080` | http://localhost:8086 |
 | Airflow | `kubectl -n data-platform port-forward svc/airflow-apiserver 8085:8080` | http://localhost:8085 (airflow/airflow) |
 | MinIO console | `kubectl -n data-platform port-forward svc/minio 9001:9001` | http://localhost:9001 |
+| Grafana | `kubectl -n monitoring port-forward svc/grafana 3000:3000` | http://localhost:3000 (admin/admin) |
+| Prometheus | `kubectl -n monitoring port-forward svc/prometheus 9090:9090` | http://localhost:9090 |
+| Alertmanager | `kubectl -n monitoring port-forward svc/alertmanager 9093:9093` | http://localhost:9093 |
 
 ## Ingress (optional)
 
@@ -158,7 +167,83 @@ Add to `/etc/hosts` (WSL: `/etc/hosts`, Windows: `C:\Windows\System32\drivers\et
 | `make deploy` | Apply manifests |
 | `make restart` | Rollout restart all deployments |
 | `make status` | Pod/service status |
+| `make hpa-status` | Show HPAs and pod CPU/memory usage |
+| `make monitoring-status` | Observability pods + UI URLs |
+| `make install-metrics-server` | Install metrics-server (also runs on `cluster-up`) |
 | `make delete` | Remove workloads from cluster |
+
+## Horizontal autoscaling
+
+`make cluster-up` installs **metrics-server** (required for CPU-based HPA). Stateless workloads scale automatically via `HorizontalPodAutoscaler` in `autoscaling/`:
+
+| Deployment | Min | Max | Trigger |
+|------------|-----|-----|---------|
+| `credit-api` | 1 | 5 | CPU 70% |
+| `mlflow` | 1 | 3 | CPU 70% |
+| `llm-api` | 1 | 3 | CPU 75% |
+| `llm-langgraph-api` | 1 | 3 | CPU 75% |
+| `llm-trino-mcp` | 1 | 3 | CPU 70% |
+| `spark-worker` | 1 | 4 | CPU 70% |
+| `airflow-worker` | 1 | 5 | CPU 70% |
+| `airflow-apiserver` | 1 | 3 | CPU 70% |
+
+Check scaling status:
+
+```bash
+make hpa-status
+# or: kubectl -n data-platform get hpa
+```
+
+**Does not scale horizontally** (single-replica by design on kind):
+
+- Databases and brokers: `postgres`, `mysql`, `minio`, `kafka`, `pgvector`, `airflow-postgres`, `airflow-redis`
+- Coordinators / singletons: `trino`, `hive-metastore`, `spark-master`, `airflow-scheduler`, `airflow-dag-processor`, `airflow-triggerer`
+
+**Multi-replica notes:**
+
+- LLM pods use per-pod `emptyDir` for the Hugging Face cache (no shared PVC), so extra replicas can schedule on different nodes; each pod may download the model on first start.
+- `credit-api` no longer sets a fixed pod `hostname`, so Spark driver callbacks work with multiple replicas via the `credit-api` Service.
+
+For production HA of stateful services, use managed databases, object storage, and a Trino cluster with separate coordinator/workers.
+
+## Observability (Prometheus + Grafana)
+
+Deployed into namespace **`monitoring`** on every `make deploy`:
+
+| Component | Role |
+|-----------|------|
+| **Prometheus** | Scrapes kube-state-metrics, cAdvisor (pod CPU/memory), and pods with `prometheus.io/scrape: "true"` |
+| **kube-state-metrics** | HPA, deployment, and pod state metrics |
+| **Grafana** | Pre-provisioned dashboards for HPA, workloads, and alerts |
+| **Alertmanager** | Routes Prometheus alert rules (HPA at max, crash loops, high CPU/memory) |
+
+Open Grafana: **http://localhost:3000** (`admin` / `admin`)
+
+Pre-built dashboards (folder **Data Platform**):
+
+- **HPA Overview** — current/desired/max replicas, scaling lag
+- **Workload Resources** — CPU & memory vs limits, deployment replicas, restarts
+- **Alerts Overview** — firing alerts and scrape health
+
+```bash
+make monitoring-status
+```
+
+**App-level `/metrics`:** Pods in `data-platform` are auto-scraped when annotated:
+
+```yaml
+metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
+```
+
+Most services do not expose Prometheus metrics yet; workload dashboards use cAdvisor + kube-state-metrics.
+
+**Alert routing:** Alertmanager uses in-cluster receivers (no Slack/email) for local dev. Edit `observability/alertmanager.yaml` to add webhooks.
+
+**Existing kind cluster?** Recreate to pick up NodePort mappings for Grafana/Prometheus: `make cluster-down && make cluster-up && make deploy`
 
 ## Images
 
@@ -204,4 +289,5 @@ Query pgvector from Trino: `SELECT * FROM pgvector.public.<table>` (after creati
 
 ## Not included (yet)
 
-- Production HA, TLS, external S3/Postgres, GPU nodes for LLM
+- Production HA for stateful services (Postgres, MinIO, Kafka, Trino coordinator), TLS, external S3/Postgres, GPU nodes for LLM
+- Queue-based autoscaling for Airflow workers (e.g. KEDA on Redis queue depth)
