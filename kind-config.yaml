@@ -1,0 +1,21 @@
+# kind cluster for the data-platform stack (local dev).
+# https://kind.sigs.k8s.io/docs/user/configuration/
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: data-platform
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      # nginx ingress (optional): map host 80/443 to the node
+      - containerPort: 80
+        hostPort: 80
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 443
+        protocol: TCP

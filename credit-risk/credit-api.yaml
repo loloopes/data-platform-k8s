@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: credit-api
+  labels:
+    app: credit-api
+spec:
+  ports:
+    - port: 8000
+      name: http
+  selector:
+    app: credit-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: credit-api
+  labels:
+    app: credit-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: credit-api
+  template:
+    metadata:
+      labels:
+        app: credit-api
+    spec:
+      hostname: credit-scoring-api
+      initContainers:
+        - name: wait-mlflow
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z mlflow 5000; do
+                echo waiting for mlflow...
+                sleep 5
+              done
+      containers:
+        - name: credit-api
+          image: local/credit-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: platform-config
+            - secretRef:
+                name: platform-secrets
+          env:
+            - name: MODEL_LOAD_BLOCKING
+              value: "false"
+            - name: PREDICTION_LOG_ENABLED
+              value: "true"
+            - name: PREDICTION_LOG_STRICT
+              value: "true"
+            - name: KAFKA_CONSUMER_ENABLED
+              value: "true"
+            - name: KAFKA_CONSUMER_SYNC_LAKEHOUSE_WRITE
+              value: "true"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            failureThreshold: 12

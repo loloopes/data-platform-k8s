@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hive-metastore
+  labels:
+    app: hive-metastore
+spec:
+  ports:
+    - port: 9083
+      name: thrift
+  selector:
+    app: hive-metastore
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hive-metastore
+  labels:
+    app: hive-metastore
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hive-metastore
+  template:
+    metadata:
+      labels:
+        app: hive-metastore
+    spec:
+      initContainers:
+        - name: wait-mysql
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until nc -z mysql 3306; do sleep 2; done
+        - name: wait-minio
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until wget -q -O- http://minio:9000/minio/health/ready; do sleep 2; done
+      containers:
+        - name: hive-metastore
+          image: local/hive-metastore:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9083
+          env:
+            - name: DB_DRIVER
+              value: mysql
+            - name: SERVICE_NAME
+              value: metastore
+            - name: HADOOP_CONF_DIR
+              value: /opt/hadoop/etc/hadoop
+            - name: HIVE_CONF_DIR
+              value: /opt/hive/conf
+            - name: SKIP_SCHEMA_INIT
+              value: "false"
+            - name: HADOOP_OPTIONAL_TOOLS
+              value: hadoop-aws
+            - name: HADOOP_CLIENT_OPTS
+              value: >-
+                -Xmx1G
+                -Djavax.jdo.option.ConnectionDriverName=com.mysql.cj.jdbc.Driver
+                -Djavax.jdo.option.ConnectionURL=jdbc:mysql://mysql:3306/metastore_db?createDatabaseIfNotExist=true
+                -Djavax.jdo.option.ConnectionUserName=admin
+                -Djavax.jdo.option.ConnectionPassword=admin
+                -Dhive.metastore.client.socket.timeout=60
+                -Dmetastore.client.socket.timeout=60
+          volumeMounts:
+            - name: hive-config
+              mountPath: /opt/hadoop/etc/hadoop/core-site.xml
+              subPath: core-site.xml
+            - name: hive-config
+              mountPath: /opt/hive/conf/core-site.xml
+              subPath: core-site.xml
+            - name: hive-config
+              mountPath: /opt/hive/conf/hive-site.xml
+              subPath: hive-site.xml
+            - name: hive-config
+              mountPath: /opt/hive/conf/metastore-site.xml
+              subPath: metastore-site.xml
+            - name: hive-config
+              mountPath: /opt/hive/conf/metastore-site.xml.template
+              subPath: metastore-site.xml
+          readinessProbe:
+            tcpSocket:
+              port: 9083
+            initialDelaySeconds: 40
+            periodSeconds: 10
+      volumes:
+        - name: hive-config
+          configMap:
+            name: hive-metastore-config

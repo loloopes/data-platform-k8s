@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-master
+  labels:
+    app: spark-master
+spec:
+  ports:
+    - port: 7077
+      name: rpc
+    - port: 8080
+      name: ui
+  selector:
+    app: spark-master
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-master
+  labels:
+    app: spark-master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark-master
+  template:
+    metadata:
+      labels:
+        app: spark-master
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: spark-master
+          image: local/spark-master:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 7077
+            - containerPort: 8080
+          env:
+            # Bind to pod IP (service DNS resolves to ClusterIP, which the pod cannot bind).
+            - name: SPARK_MASTER_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: SPARK_MASTER_PORT
+              value: "7077"
+            - name: SPARK_MASTER_WEBUI_PORT
+              value: "8080"
+            - name: SPARK_NO_DAEMONIZE
+              value: "1"
+            - name: PYSPARK_PYTHON
+              value: /opt/conda/bin/python
+            - name: PYSPARK_DRIVER_PYTHON
+              value: /opt/conda/bin/python
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-worker
+  labels:
+    app: spark-worker
+spec:
+  ports:
+    - port: 8081
+      name: ui
+  selector:
+    app: spark-worker
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-worker
+  labels:
+    app: spark-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark-worker
+  template:
+    metadata:
+      labels:
+        app: spark-worker
+    spec:
+      enableServiceLinks: false
+      initContainers:
+        - name: wait-master
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until nc -z spark-master 7077; do sleep 2; done
+      containers:
+        - name: spark-worker
+          image: local/spark-worker:latest
+          imagePullPolicy: IfNotPresent
+          command: ["/opt/spark/sbin/start-worker.sh", "spark://spark-master:7077"]
+          ports:
+            - containerPort: 8081
+          env:
+            - name: SPARK_WORKER_CORES
+              value: "2"
+            - name: SPARK_WORKER_MEMORY
+              value: 4g
+            - name: SPARK_NO_DAEMONIZE
+              value: "1"
+            - name: PYSPARK_PYTHON
+              value: /opt/conda/bin/python
+            - name: PYSPARK_DRIVER_PYTHON
+              value: /opt/conda/bin/python

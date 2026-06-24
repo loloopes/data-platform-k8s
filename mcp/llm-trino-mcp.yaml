@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-trino-mcp
+  labels:
+    app: llm-trino-mcp
+spec:
+  ports:
+    - port: 8765
+      name: sse
+  selector:
+    app: llm-trino-mcp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-trino-mcp
+  labels:
+    app: llm-trino-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llm-trino-mcp
+  template:
+    metadata:
+      labels:
+        app: llm-trino-mcp
+    spec:
+      initContainers:
+        - name: wait-trino
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until wget -q -O- http://trino:8080/v1/info; do sleep 3; done
+      containers:
+        - name: mcp
+          image: local/llm-trino-mcp:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8765
+          envFrom:
+            - configMapRef:
+                name: platform-config
+            - secretRef:
+                name: platform-secrets
+          env:
+            - name: TRINO_USER
+              valueFrom:
+                secretKeyRef:
+                  name: platform-secrets
+                  key: TRINO_USER
+            - name: TRINO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: platform-secrets
+                  key: TRINO_PASSWORD
+          readinessProbe:
+            tcpSocket:
+              port: 8765
+            initialDelaySeconds: 10
+            periodSeconds: 5

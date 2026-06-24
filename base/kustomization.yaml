@@ -1,0 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+
+secretGenerator:
+  - name: platform-secrets
+    envs:
+      - secrets.env
+    options:
+      disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: platform-config
+    literals:
+      - POSTGRES_HOST=postgres
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - MLFLOW_S3_IGNORE_TLS=true
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_CONSUMER_TOPIC=predict
+      - KAFKA_CONSUMER_GROUP_ID=credit-risk-forecast-consumer
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_HIVE_METASTORE_URIS=thrift://hive-metastore:9083
+      - SPARK_SQL_WAREHOUSE_DIR=s3a://lakehouse/
+      - SPARK_S3A_ENDPOINT=http://minio:9000
+      - SPARK_DRIVER_HOST=credit-api
+      - TRINO_HOST=trino
+      - TRINO_PORT=8080
+      - TRINO_HTTP_SCHEME=http
+      - TRINO_MCP_SSE_URL=http://llm-trino-mcp:8765/sse
+      - TRINO_MCP_HOST=llm-trino-mcp
+      - PGVECTOR_HOST=pgvector
+      - PGVECTOR_PORT=5432
+      - PDF_PATH=/app/data/analytics_engineer.pdf
+      - LLM_IN_DOCKER=1
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - BASE_MODEL=Qwen/Qwen2.5-0.5B-Instruct
+      - ADAPTER_REPO=Glccampos/llm_qween
+      - SKIP_PREFETCH=true
+    options:
+      disableNameSuffixHash: true
