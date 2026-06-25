@@ -23,6 +23,8 @@ if command -v kubectl >/dev/null 2>&1; then
 fi
 
 echo "==> kubectl apply (context: $(kubectl config current-context 2>/dev/null || echo unknown))"
+# Jobs are immutable — remove init jobs so template updates can be re-applied.
+kubectl -n data-platform delete job airflow-init minio-init --ignore-not-found
 kubectl kustomize --load-restrictor LoadRestrictionsNone platform/ | kubectl apply -f -
 kubectl kustomize --load-restrictor LoadRestrictionsNone observability/ | kubectl apply -f -
 

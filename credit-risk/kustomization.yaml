@@ -1,6 +1,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+configMapGenerator:
+  - name: mlflow-postgres-init
+    literals:
+      - 01-init.sql=CREATE DATABASE mlflow_auth;
+    options:
+      disableNameSuffixHash: true
 resources:
   - mlflow-postgres.yaml
   - minio.yaml

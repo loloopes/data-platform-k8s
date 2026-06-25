@@ -14,7 +14,7 @@ spec:
       restartPolicy: OnFailure
       enableServiceLinks: false
       initContainers:
-        - name: wait-deps
+        - name: wait-postgres
           image: postgres:15
           env:
             - name: PGPASSWORD
@@ -30,6 +30,12 @@ spec:
             - -c
             - |
               until pg_isready -h airflow-postgres -U "$AIRFLOW_DB_USER" -d "$AIRFLOW_DB_NAME"; do sleep 2; done
+        - name: wait-redis
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
               until nc -z airflow-redis 6379; do sleep 2; done
       containers:
         - name: airflow-init
