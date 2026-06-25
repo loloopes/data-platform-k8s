@@ -178,7 +178,7 @@ Add to `/etc/hosts` (WSL: `/etc/hosts`, Windows: `C:\Windows\System32\drivers\et
 
 | Deployment | Min | Max | Trigger |
 |------------|-----|-----|---------|
-| `credit-api` | 1 | 5 | CPU 70% |
+| `credit-api` | 1 | 5 | CPU 70% (idle stays at 1) |
 | `llm-api` | 1 | 3 | CPU 75% |
 | `llm-langgraph-api` | 1 | 3 | CPU 75% |
 | `llm-trino-mcp` | 1 | 3 | CPU 70% |
