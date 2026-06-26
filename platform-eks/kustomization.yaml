@@ -1,0 +1,52 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# EKS overlay: same as platform/ but without kind NodePort patches.
+# Image names are rewritten to ECR by scripts/deploy-eks.sh (kustomize edit set image).
+
+namespace: data-platform
+
+resources:
+  - ../base
+  - ../credit-risk
+  - ../trino
+  - ../spark
+  - ../mcp
+  - ../llm
+  - ../airflow
+  - ../autoscaling
+  - ../ingress
+
+patches:
+  - path: ../autoscaling/patches/credit-api.yaml
+    target:
+      kind: Deployment
+      name: credit-api
+  - path: ../autoscaling/patches/mlflow.yaml
+    target:
+      kind: Deployment
+      name: mlflow
+  - path: ../autoscaling/patches/llm-api.yaml
+    target:
+      kind: Deployment
+      name: llm-api
+  - path: ../autoscaling/patches/llm-langgraph-api.yaml
+    target:
+      kind: Deployment
+      name: llm-langgraph-api
+  - path: ../autoscaling/patches/llm-trino-mcp.yaml
+    target:
+      kind: Deployment
+      name: llm-trino-mcp
+  - path: ../autoscaling/patches/spark-worker.yaml
+    target:
+      kind: Deployment
+      name: spark-worker
+  - path: ../autoscaling/patches/airflow-worker.yaml
+    target:
+      kind: Deployment
+      name: airflow-worker
+  - path: ../autoscaling/patches/airflow-apiserver.yaml
+    target:
+      kind: Deployment
+      name: airflow-apiserver

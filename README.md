@@ -1,6 +1,9 @@
 # Kubernetes — Data Platform (kind)
 
-Deploys the full stack from this monorepo into a single namespace **`data-platform`** on a local **[kind](https://kind.sigs.k8s.io/)** cluster.
+Deploys the full stack from this monorepo into a single namespace **`data-platform`**.
+
+- **Local (kind):** see Quick start below.
+- **AWS EKS:** see [`../terraform/README.md`](../terraform/README.md) — VPC, EKS, ECR, ALB + ACM, remote state, and deploy scripts.
 
 | Component | Source repo | K8s services |
 |-----------|-------------|--------------|
