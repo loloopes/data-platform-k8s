@@ -7,7 +7,8 @@ K8S_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 TF_DIR="${ROOT}/terraform"
 TAG="${IMAGE_TAG:-latest}"
 
-source "${K8S_DIR}/.env" 2>/dev/null || true
+# Do NOT source k8s/.env here — it sets AWS_* to MinIO creds (minio123) and breaks ECR login.
+# AWS credentials come from terraform/.env via make push-images → with-env.sh
 
 if [[ ! -d "${TF_DIR}/.terraform" ]] && [[ ! -f "${TF_DIR}/terraform.tfstate" ]]; then
   echo "Run 'terraform apply' in ${TF_DIR} first." >&2
