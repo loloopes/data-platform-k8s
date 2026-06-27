@@ -34,7 +34,8 @@ configMapGenerator:
       - TRINO_MCP_HOST=llm-trino-mcp
       - PGVECTOR_HOST=pgvector
       - PGVECTOR_PORT=5432
-      - PDF_PATH=/app/data/analytics_engineer.pdf
+      - DOCUMENTS_DIR=/app/documents
+      - RAG_AUTO_INGEST=false
       - LLM_IN_DOCKER=1
       - API_HOST=0.0.0.0
       - API_PORT=8000

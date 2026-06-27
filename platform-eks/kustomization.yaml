@@ -30,7 +30,7 @@ patches:
     target:
       kind: Deployment
       name: llm-api
-  - path: ../autoscaling/patches/llm-langgraph-api.yaml
+  - path: ../autoscaling/patches/llm-langgraph-api-gpu.yaml
     target:
       kind: Deployment
       name: llm-langgraph-api

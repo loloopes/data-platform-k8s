@@ -11,6 +11,7 @@ HF_TOKEN="${HF_TOKEN:-}"
 SKIP_PREFETCH="${SKIP_PREFETCH:-true}"
 BASE_MODEL="${BASE_MODEL:-Qwen/Qwen2.5-0.5B-Instruct}"
 ADAPTER_REPO="${ADAPTER_REPO:-Glccampos/llm_qween}"
+TORCH_VARIANT="${TORCH_VARIANT:-gpu}"
 
 echo "==> MLflow"
 docker build -t "local/mlflow:${TAG}" "${ROOT}/credit_risk_forecast/docker/mlflow"
@@ -36,6 +37,7 @@ docker build -t "local/llm-api:${TAG}" \
   --build-arg SKIP_PREFETCH="${SKIP_PREFETCH}" \
   --build-arg BASE_MODEL="${BASE_MODEL}" \
   --build-arg ADAPTER_REPO="${ADAPTER_REPO}" \
+  --build-arg TORCH_VARIANT="${TORCH_VARIANT}" \
   -f "${ROOT}/llm/api/Dockerfile" "${ROOT}/llm/api"
 
 echo "==> llm-langgraph-api"

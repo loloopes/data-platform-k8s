@@ -1,0 +1,27 @@
+# Requires NVIDIA device plugin + GPU node group (role=gpu, taint nvidia.com/gpu).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-langgraph-api
+spec:
+  template:
+    spec:
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      nodeSelector:
+        role: gpu
+      containers:
+        - name: llm-langgraph-api
+          env:
+            - name: LLM_DEVICE
+              value: cuda
+          resources:
+            requests:
+              cpu: 500m
+              memory: 4Gi
+              nvidia.com/gpu: 1
+            limits:
+              memory: 14Gi
+              nvidia.com/gpu: 1

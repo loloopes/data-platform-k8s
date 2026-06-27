@@ -7,6 +7,27 @@ metadata:
 data:
   01-init.sql: |
     CREATE EXTENSION IF NOT EXISTS vector;
+    CREATE TABLE IF NOT EXISTS rag_documents (
+        id UUID PRIMARY KEY,
+        filename TEXT NOT NULL,
+        source_path TEXT,
+        content_type TEXT,
+        byte_size BIGINT,
+        content_hash TEXT,
+        chunk_count INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS rag_document_chunks (
+        id UUID PRIMARY KEY,
+        document_id UUID NOT NULL REFERENCES rag_documents(id) ON DELETE CASCADE,
+        chunk_index INT NOT NULL,
+        content TEXT NOT NULL,
+        embedding vector(384) NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS rag_documents_filename_idx ON rag_documents (filename);
+    CREATE INDEX IF NOT EXISTS rag_document_chunks_document_id_idx ON rag_document_chunks (document_id);
 ---
 apiVersion: v1
 kind: Service
