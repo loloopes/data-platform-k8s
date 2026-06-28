@@ -11,6 +11,7 @@ resources:
   - mlflow-postgres.yaml
   - minio.yaml
   - minio-init-job.yaml
+  - kafka-init-job.yaml
   - mlflow.yaml
   - credit-api.yaml
   - kafka.yaml

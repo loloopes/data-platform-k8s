@@ -5,7 +5,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 K8S_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 TF_DIR="${ROOT}/terraform"
-TAG="${IMAGE_TAG:-latest}"
 AIRFLOW_TAG="3.1.0-libgomp"
 
 AWS_REGION="${AWS_REGION:-$(terraform -chdir="${TF_DIR}" output -raw aws_region)}"
@@ -34,6 +33,17 @@ render_alb_ingress() {
     "${K8S_DIR}/ingress-eks/ingress-alb.yaml"
 }
 
+llm_use_gpu() {
+  local raw="${LLM_USE_GPU:-}"
+  if [[ -z "${raw}" && -f "${K8S_DIR}/.env" ]]; then
+    raw="$(grep -E '^LLM_USE_GPU=' "${K8S_DIR}/.env" | tail -1 | cut -d= -f2- | tr -d " '\"" || true)"
+  fi
+  case "${raw,,}" in
+    1 | true | yes | on) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 echo "==> Configure kubectl for ${CLUSTER_NAME}"
 aws eks update-kubeconfig --region "${AWS_REGION}" --name "${CLUSTER_NAME}"
 
@@ -44,11 +54,24 @@ if [[ ! -f "${K8S_DIR}/.env" ]]; then
 fi
 cp "${K8S_DIR}/.env" "${K8S_DIR}/base/secrets.env"
 
+# Use IMAGE_TAG from k8s/.env unless explicitly overridden in the shell.
+if [[ -z "${IMAGE_TAG:-}" ]]; then
+  IMAGE_TAG="$(grep -E '^IMAGE_TAG=' "${K8S_DIR}/.env" | tail -1 | cut -d= -f2- | tr -d " '\"" || true)"
+fi
+TAG="${IMAGE_TAG:-latest}"
+echo "==> Image tag: ${TAG}"
+
 cd "${K8S_DIR}"
 
 OVERLAY="platform-eks"
 if [[ "${INGRESS_TYPE}" == "alb" ]]; then
   OVERLAY="platform-eks-alb"
+fi
+if llm_use_gpu; then
+  OVERLAY="${OVERLAY}-gpu"
+  echo "==> LLM GPU mode enabled (LLM_USE_GPU=true → overlay ${OVERLAY})"
+else
+  echo "==> LLM CPU mode (set LLM_USE_GPU=true in k8s/.env for GPU nodes)"
 fi
 
 echo "==> Render manifests (${OVERLAY} overlay + ECR images)"
@@ -68,7 +91,7 @@ if [[ "${INGRESS_TYPE}" == "alb" ]]; then
 fi
 
 echo "==> Delete init jobs (immutable) then apply"
-kubectl -n data-platform delete job airflow-init minio-init --ignore-not-found 2>/dev/null || true
+kubectl -n data-platform delete job airflow-init minio-init kafka-init --ignore-not-found 2>/dev/null || true
 echo "${MANIFEST}" | kubectl apply -f -
 kubectl kustomize --load-restrictor LoadRestrictionsNone observability | kubectl apply -f -
 

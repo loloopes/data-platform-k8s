@@ -1,0 +1,14 @@
+# Optional GPU scheduling — enabled when deploy-eks.sh uses platform-eks-gpu overlay
+# (LLM_USE_GPU=true in k8s/.env). Requires GPU nodes: role=gpu, taint nvidia.com/gpu.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+  - path: ../../autoscaling/patches/llm-api-gpu.yaml
+    target:
+      kind: Deployment
+      name: llm-api
+  - path: ../../autoscaling/patches/llm-langgraph-api-gpu.yaml
+    target:
+      kind: Deployment
+      name: llm-langgraph-api

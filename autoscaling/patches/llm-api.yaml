@@ -7,6 +7,9 @@ spec:
     spec:
       containers:
         - name: llm-api
+          env:
+            - name: LLM_DEVICE
+              value: cpu
           resources:
             requests:
               cpu: 500m

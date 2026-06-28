@@ -5,7 +5,13 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 K8S_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 TF_DIR="${ROOT}/terraform"
+
+# IMAGE_TAG from env wins; otherwise read k8s/.env (without sourcing MinIO AWS_* creds).
+if [[ -z "${IMAGE_TAG:-}" && -f "${K8S_DIR}/.env" ]]; then
+  IMAGE_TAG="$(grep -E '^IMAGE_TAG=' "${K8S_DIR}/.env" | tail -1 | cut -d= -f2- | tr -d " '\"" || true)"
+fi
 TAG="${IMAGE_TAG:-latest}"
+echo "==> Image tag: ${TAG}"
 
 # Do NOT source k8s/.env here — it sets AWS_* to MinIO creds (minio123) and breaks ECR login.
 # AWS credentials come from terraform/.env via make push-images → with-env.sh

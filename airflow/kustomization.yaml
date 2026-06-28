@@ -45,5 +45,11 @@ configMapGenerator:
       - REQUEST_TIMEOUT_SECONDS=15
       - MONITOR_MAX_ROWS=0
       - LAKEHOUSE_NEGADO_MIN_RATE=0.90
+      # Celery workers advertise pod hostnames (e.g. airflow-worker-xxx) which are not
+      # resolvable from the API server — store logs in MinIO instead of HTTP :8793 fetch.
+      - AIRFLOW__LOGGING__REMOTE_LOGGING=True
+      - AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER=s3://mlflow/airflow-logs
+      - AIRFLOW__LOGGING__DELETE_LOCAL_LOGS=False
+      - 'AIRFLOW__LOGGING__REMOTE_TASK_HANDLER_KWARGS={"endpoint_url":"http://minio:9000"}'
     options:
       disableNameSuffixHash: true

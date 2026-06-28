@@ -22,11 +22,13 @@ configMapGenerator:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - KAFKA_CONSUMER_TOPIC=predict
       - KAFKA_CONSUMER_GROUP_ID=credit-risk-forecast-consumer
-      - SPARK_MASTER_URL=spark://spark-master:7077
+      - KAFKA_TOPIC_PARTITIONS=3
+      - KAFKA_TOPIC_REPLICATION_FACTOR=1
+      - SPARK_MASTER_URL=local[2]
       - SPARK_HIVE_METASTORE_URIS=thrift://hive-metastore:9083
       - SPARK_SQL_WAREHOUSE_DIR=s3a://lakehouse/
       - SPARK_S3A_ENDPOINT=http://minio:9000
-      - SPARK_DRIVER_HOST=credit-api
+      - LAKEHOUSE_WRITE_REPARTITION=0
       - TRINO_HOST=trino
       - TRINO_PORT=8080
       - TRINO_HTTP_SCHEME=http

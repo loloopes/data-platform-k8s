@@ -91,6 +91,7 @@ spec:
                 --port 5000 \
                 --workers 1 \
                 --allowed-hosts "${MLFLOW_SERVER_ALLOWED_HOSTS}" \
+                --cors-allowed-origins "${MLFLOW_SERVER_CORS_ALLOWED_ORIGINS}" \
                 --backend-store-uri "$BACKEND" \
                 --default-artifact-root "s3://${MLFLOW_BUCKET}"
           startupProbe:

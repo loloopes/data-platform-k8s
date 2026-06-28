@@ -41,7 +41,7 @@ spec:
       containers:
         - name: credit-api
           image: local/credit-api:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
           envFrom:
@@ -60,6 +60,16 @@ spec:
               value: "true"
             - name: KAFKA_CONSUMER_SYNC_LAKEHOUSE_WRITE
               value: "true"
+            # Spark client-mode driver: executors must reach the pod IP on the driver RPC port.
+            # Required only when SPARK_MASTER_URL points at the standalone cluster.
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: SPARK_DRIVER_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
           readinessProbe:
             httpGet:
               path: /health

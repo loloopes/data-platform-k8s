@@ -203,7 +203,7 @@ make hpa-status
 **Multi-replica notes:**
 
 - LLM pods use per-pod `emptyDir` for the Hugging Face cache (no shared PVC), so extra replicas can schedule on different nodes; each pod may download the model on first start.
-- `credit-api` no longer sets a fixed pod `hostname`, so Spark driver callbacks work with multiple replicas via the `credit-api` Service.
+- `credit-api` sets `SPARK_DRIVER_HOST` to the pod IP (via downward API). Spark client-mode drivers listen on a random RPC port that is not exposed through the `credit-api` Service, so executors must connect directly to the pod.
 
 For production HA of stateful services, use managed databases, object storage, and a Trino cluster with separate coordinator/workers.
 

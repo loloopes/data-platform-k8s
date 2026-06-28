@@ -11,7 +11,22 @@ HF_TOKEN="${HF_TOKEN:-}"
 SKIP_PREFETCH="${SKIP_PREFETCH:-true}"
 BASE_MODEL="${BASE_MODEL:-Qwen/Qwen2.5-0.5B-Instruct}"
 ADAPTER_REPO="${ADAPTER_REPO:-Glccampos/llm_qween}"
-TORCH_VARIANT="${TORCH_VARIANT:-gpu}"
+
+_llm_use_gpu() {
+  case "${LLM_USE_GPU:-false}" in
+    1 | true | TRUE | yes | YES | on | ON) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+if [[ -z "${TORCH_VARIANT:-}" ]]; then
+  if _llm_use_gpu; then
+    TORCH_VARIANT=gpu
+  else
+    TORCH_VARIANT=cpu
+  fi
+fi
+echo "==> LLM image TORCH_VARIANT=${TORCH_VARIANT} (LLM_USE_GPU=${LLM_USE_GPU:-false})"
 
 echo "==> MLflow"
 docker build -t "local/mlflow:${TAG}" "${ROOT}/credit_risk_forecast/docker/mlflow"
